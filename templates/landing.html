@@ -19,7 +19,8 @@
     </p>
     <div class="lp-hero-actions">
         <a href="{{ url_for('register') }}" class="lp-hero-btn">Create free account</a>
-        <a href="#features" class="lp-hero-btn">See how it works</a>
+        <button type="button" class="lp-hero-btn" id="video-open"
+                data-video-src="https://www.youtube-nocookie.com/embed/jNQXAC9IVRw">See how it works</button>
     </div>
 
     <div class="lp-mock">
@@ -59,6 +60,16 @@
         </div>
     </div>
 </section>
+
+<div class="video-modal" id="video-modal" role="dialog" aria-modal="true" aria-label="How Spendly works" hidden>
+    <div class="video-modal-dialog">
+        <button type="button" class="video-modal-close" id="video-close" aria-label="Close video">&times;</button>
+        <div class="video-modal-frame">
+            <iframe id="video-iframe" title="How Spendly works"
+                    allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+        </div>
+    </div>
+</div>
 
 <section class="features">
     <div class="features-inner">
