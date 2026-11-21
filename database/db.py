@@ -1,8 +1,9 @@
 import os
+import secrets
 import sqlite3
 from datetime import date
 
-from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 DB_PATH = os.environ.get(
     "SPENDLY_DB_PATH",
@@ -11,6 +12,11 @@ DB_PATH = os.environ.get(
         "expense_tracker.db",
     ),
 )
+
+
+# Checked against when an email is unknown, so a failed login takes about as
+# long as a wrong password and response time doesn't reveal registered emails.
+_DUMMY_PASSWORD_HASH = generate_password_hash(secrets.token_hex(16))
 
 
 class EmailAlreadyRegisteredError(Exception):
@@ -65,6 +71,31 @@ def get_user_by_email(email):
         ).fetchone()
     finally:
         conn.close()
+
+
+def get_user_by_id(user_id):
+    """Return the user row for the given id, or None."""
+    conn = get_db()
+    try:
+        return conn.execute(
+            "SELECT * FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+    finally:
+        conn.close()
+
+
+def authenticate_user(email, password):
+    """Return the user row if the password matches, otherwise None.
+
+    Expects an already-normalised email.
+    """
+    user = get_user_by_email(email)
+    if user is None:
+        check_password_hash(_DUMMY_PASSWORD_HASH, password)
+        return None
+    if not check_password_hash(user["password_hash"], password):
+        return None
+    return user
 
 
 def create_user(name, email, password):
