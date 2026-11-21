@@ -4,10 +4,17 @@ from datetime import date
 
 from werkzeug.security import generate_password_hash
 
-DB_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "expense_tracker.db",
+DB_PATH = os.environ.get(
+    "SPENDLY_DB_PATH",
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "expense_tracker.db",
+    ),
 )
+
+
+class EmailAlreadyRegisteredError(Exception):
+    """Raised when a user tries to register with an email already in use."""
 
 
 def get_db():
@@ -45,6 +52,40 @@ def init_db():
             """
         )
         conn.commit()
+    finally:
+        conn.close()
+
+
+def get_user_by_email(email):
+    """Return the user row for an already-normalised email, or None."""
+    conn = get_db()
+    try:
+        return conn.execute(
+            "SELECT * FROM users WHERE email = ?", (email,)
+        ).fetchone()
+    finally:
+        conn.close()
+
+
+def create_user(name, email, password):
+    """Insert a user with a hashed password and return the new id.
+
+    The UNIQUE constraint on email is the real guard against duplicates;
+    callers may pre-check with get_user_by_email() for a friendly error,
+    but two concurrent sign-ups can still race past that check.
+    """
+    conn = get_db()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
+            (name, email, generate_password_hash(password)),
+        )
+        conn.commit()
+        return cursor.lastrowid
+    except sqlite3.IntegrityError as exc:
+        if "users.email" in str(exc):
+            raise EmailAlreadyRegisteredError(email) from exc
+        raise
     finally:
         conn.close()
 

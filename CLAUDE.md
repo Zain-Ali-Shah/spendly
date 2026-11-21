@@ -90,6 +90,11 @@ pytest -k "test_name"
 pytest -s
 ```
 
+Environment variables:
+
+- `SECRET_KEY` — Flask session/flash signing key; falls back to a dev-only value when unset
+- `SPENDLY_DB_PATH` — SQLite file path; defaults to `expense_tracker.db` in the project root (tests point it at a temp file)
+
 ---
 
 ## Implemented vs stub routes
@@ -98,6 +103,7 @@ pytest -s
 | --------------------------- | ------------------------------------- |
 | `GET /`                     | Implemented — renders `landing.html`  |
 | `GET /register`             | Implemented — renders `register.html` |
+| `POST /register`            | Implemented — creates user, redirects to login |
 | `GET /login`                | Implemented — renders `login.html`    |
 | `GET /logout`               | Stub — Step 3                         |
 | `GET /profile`              | Stub — Step 4                         |
@@ -116,6 +122,6 @@ pytest -s
 - **Never put DB logic in route functions** — it belongs in `database/db.py`
 - **Never install new packages** mid-feature without flagging it — keep `requirements.txt` in sync
 - **Never use JS frameworks** — the frontend is intentionally vanilla
-- **`database/db.py` is currently empty** — do not assume helpers exist until the step that implements them
+- **`database/db.py` only has the helpers built so far** (`get_db`, `init_db`, `seed_db`, `get_user_by_email`, `create_user`) — do not assume others exist until the step that implements them
 - **FK enforcement is manual** — SQLite foreign keys are off by default; `get_db()` must run `PRAGMA foreign_keys = ON` on every connection
 - The app runs on **port 5001**, not the Flask default 5000 — don't change this
