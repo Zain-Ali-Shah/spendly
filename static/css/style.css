@@ -736,7 +736,7 @@ button.lp-hero-btn {
 }
 
 @media (max-width: 600px) {
-    .nav-links a:not(.nav-cta) { display: none; }
+    .nav-links a:not(.nav-cta):not(.nav-profile) { display: none; }
     .nav-user { display: none; }
     .legal-section { padding: 2.5rem 1rem 3rem; }
     .legal-card { padding: 1.5rem; }

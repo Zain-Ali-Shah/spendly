@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+from functools import wraps
 
 from flask import (
     Flask,
@@ -41,6 +43,35 @@ PASSWORD_MIN_LENGTH = 8
 PASSWORD_MAX_LENGTH = 128
 DUPLICATE_EMAIL_MESSAGE = "An account with this email already exists."
 LOGIN_ERROR_MESSAGE = "Invalid email or password."
+SIGN_IN_REQUIRED_MESSAGE = "Please sign in to view your profile."
+
+# Placeholder data so the profile page can be designed before real stats exist.
+# It mirrors the seeded demo expenses; Step 5 replaces it with database/db.py
+# queries scoped to the signed-in user.
+PLACEHOLDER_TRANSACTIONS = [
+    {"date": date, "description": description, "category": category,
+     "amount": amount}
+    for date, description, category, amount in [
+        ("2026-11-22", "Dinner out", "Food", 950.00),
+        ("2026-11-18", "Miscellaneous", "Other", 700.00),
+        ("2026-11-15", "Clothes", "Shopping", 4500.00),
+        ("2026-11-12", "Cinema tickets", "Entertainment", 2000.00),
+        ("2026-11-09", "Pharmacy", "Health", 1500.00),
+        ("2026-11-06", "Electricity bill", "Bills", 6500.00),
+        ("2026-11-04", "Fuel", "Transport", 800.00),
+        ("2026-11-02", "Groceries", "Food", 1250.00),
+    ]
+]
+PLACEHOLDER_CATEGORIES = [
+    {"name": "Bills", "amount": 6500.00},
+    {"name": "Shopping", "amount": 4500.00},
+    {"name": "Food", "amount": 2200.00},
+    {"name": "Entertainment", "amount": 2000.00},
+    {"name": "Health", "amount": 1500.00},
+    {"name": "Transport", "amount": 800.00},
+    {"name": "Other", "amount": 700.00},
+]
+PLACEHOLDER_SUMMARY = {"total": 18200.00, "count": 8, "top_category": "Bills"}
 
 
 def validate_registration(name, email, password):
@@ -65,6 +96,39 @@ def validate_registration(name, email, password):
         return f"Password must be at most {PASSWORD_MAX_LENGTH} characters."
 
     return None
+
+
+def _parse_date(value):
+    """Parse the leading YYYY-MM-DD of a stored date, or return None."""
+    try:
+        return datetime.strptime(value[:10], "%Y-%m-%d")
+    except (TypeError, ValueError):
+        return None
+
+
+@app.template_filter("month_year")
+def month_year(value):
+    """'2026-11-26 10:15:00' -> 'November 2026'; '' if unparseable."""
+    parsed = _parse_date(value)
+    return parsed.strftime("%B %Y") if parsed else ""
+
+
+@app.template_filter("short_date")
+def short_date(value):
+    """'2026-11-02' -> '02 Nov 2026'; '' if unparseable."""
+    parsed = _parse_date(value)
+    return parsed.strftime("%d %b %Y") if parsed else ""
+
+
+def login_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if g.user is None:
+            flash(SIGN_IN_REQUIRED_MESSAGE, "error")
+            return redirect(url_for("login"))
+        return view(*args, **kwargs)
+
+    return wrapped
 
 
 @app.before_request
@@ -92,7 +156,7 @@ def landing():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if g.user is not None:
-        return redirect(url_for("landing"))
+        return redirect(url_for("profile"))
 
     if request.method == "GET":
         return render_template("register.html")
@@ -124,7 +188,7 @@ def register():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if g.user is not None:
-        return redirect(url_for("landing"))
+        return redirect(url_for("profile"))
 
     if request.method == "GET":
         return render_template("login.html")
@@ -141,8 +205,7 @@ def login():
 
     session.clear()
     session["user_id"] = user["id"]
-    flash(f"Welcome back, {user['name']}.", "success")
-    return redirect(url_for("landing"))
+    return redirect(url_for("profile"))
 
 
 @app.route("/logout", methods=["POST"])
@@ -162,14 +225,21 @@ def privacy():
     return render_template("privacy.html")
 
 
+@app.route("/profile")
+@login_required
+def profile():
+    return render_template(
+        "profile.html",
+        user=g.user,
+        summary=PLACEHOLDER_SUMMARY,
+        transactions=PLACEHOLDER_TRANSACTIONS,
+        categories=PLACEHOLDER_CATEGORIES,
+    )
+
+
 # ------------------------------------------------------------------ #
 # Placeholder routes — students will implement these                  #
 # ------------------------------------------------------------------ #
-
-@app.route("/profile")
-def profile():
-    return "Profile page — coming in Step 4"
-
 
 @app.route("/expenses/add")
 def add_expense():

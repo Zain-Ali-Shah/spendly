@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Profile · Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="profile-section">
+    <div class="profile-container">
+
+        <header class="profile-header">
+            <h1 class="profile-title">Your profile</h1>
+            <p class="profile-subtitle">An overview of your account and spending.</p>
+        </header>
+
+        <div class="profile-card profile-user">
+            <div class="profile-avatar" aria-hidden="true">{% for part in user['name'].split()[:2] %}{{ part[0]|upper }}{% endfor %}</div>
+            <div class="profile-user-info">
+                <h2 class="profile-user-name">{{ user['name'] }}</h2>
+                <p class="profile-user-meta">
+                    <span>{{ user['email'] }}</span>
+                    {% set member_since = user['created_at']|month_year %}
+                    {% if member_since %}
+                    <span class="profile-user-sep" aria-hidden="true">·</span>
+                    <span>Member since {{ member_since }}</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="profile-stats">
+            <div class="profile-card profile-stat">
+                <p class="profile-stat-label">Total spent</p>
+                <p class="profile-stat-value">Rs {{ "{:,.2f}".format(summary.total) }}</p>
+            </div>
+            <div class="profile-card profile-stat">
+                <p class="profile-stat-label">Transactions</p>
+                <p class="profile-stat-value">{{ summary.count }}</p>
+            </div>
+            <div class="profile-card profile-stat">
+                <p class="profile-stat-label">Top category</p>
+                <p class="profile-stat-value">{{ summary.top_category or "—" }}</p>
+            </div>
+        </div>
+
+        <div class="profile-panels">
+            <div class="profile-card profile-panel">
+                <h2 class="profile-panel-title">Recent transactions</h2>
+                {% if transactions %}
+                <div class="profile-table-wrap">
+                    <table class="profile-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Date</th>
+                                <th scope="col">Description</th>
+                                <th scope="col">Category</th>
+                                <th scope="col" class="profile-num">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tx in transactions %}
+                            <tr>
+                                <td class="profile-date">{{ tx.date|short_date }}</td>
+                                <td>{{ tx.description or "—" }}</td>
+                                <td><span class="profile-badge">{{ tx.category }}</span></td>
+                                <td class="profile-num">Rs {{ "{:,.2f}".format(tx.amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="profile-empty">No expenses yet. They will appear here once you add some.</p>
+                {% endif %}
+            </div>
+
+            <div class="profile-card profile-panel">
+                <h2 class="profile-panel-title">Spending by category</h2>
+                {% if categories and summary.total %}
+                <ul class="profile-categories">
+                    {% for category in categories %}
+                    {% set share = (category.amount / summary.total * 100)|round(1) %}
+                    <li class="profile-category">
+                        <div class="profile-category-row">
+                            <span class="profile-category-name">{{ category.name }}</span>
+                            <span class="profile-num">Rs {{ "{:,.2f}".format(category.amount) }}</span>
+                        </div>
+                        <div class="profile-bar-track">
+                            <div class="profile-bar-fill{% if loop.first %} profile-bar-fill--top{% endif %}" style="width: {{ share }}%"></div>
+                        </div>
+                        <span class="profile-category-share">{{ share }}%</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="profile-empty">No spending to break down yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}
