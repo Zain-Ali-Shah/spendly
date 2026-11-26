@@ -30,7 +30,7 @@ def test_login_success_redirects_and_sets_session(client):
     response = post_login(client)
 
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/")
+    assert response.headers["Location"].endswith("/profile")
     assert session_user_id(client) == db.get_user_by_email(DEMO_EMAIL)["id"]
 
 
@@ -42,9 +42,10 @@ def test_navbar_shows_user_after_login(client):
     )
 
     assert response.status_code == 200
+    assert response.request.path == "/profile"
     assert b"Demo User" in response.data
     assert b"Sign out" in response.data
-    assert b"Welcome back, Demo User." in response.data
+    assert b"Welcome back" not in response.data
     assert b"Get started" not in response.data
 
 
@@ -136,7 +137,7 @@ def test_signed_in_user_redirected_from_auth_pages(client, path):
     response = client.get(path)
 
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/")
+    assert response.headers["Location"].endswith("/profile")
 
 
 def test_stale_session_treated_as_signed_out(client):
